@@ -112,10 +112,10 @@ void loop()
   tft.fillRect(0, tft.height() / 2 + 22, tft.width(), tft.height() / 2 + 22, TFT_LIGHTGREY);
   drawArrayJpeg(station_1, sizeof(station_1), 26.5, 186); // Draw a jpeg image stored in memory
                                                           // delay(5000000); // Delay for a short period of time
-  tft.drawLine(0, 180, tft.width(), 180, TFT_LIGHTGREY);
-  tft.drawLine(0, 179, tft.width(), 179, TFT_LIGHTGREY);
-  tft.drawLine(0, 178, tft.width(), 178, TFT_LIGHTGREY);
-  tft.drawLine(0, 72, tft.width(), 72, TFT_LIGHTGREY);
+  // tft.drawLine(0, 180, tft.width(), 180, TFT_SKYBLUE);
+  // tft.drawLine(0, 179, tft.width(), 179, TFT_SKYBLUE);
+  // tft.drawLine(0, 178, tft.width(), 178, TFT_SKYBLUE);
+  tft.drawLine(0, 72, tft.width(), 72, TFT_SKYBLUE);
 
   targetTime = millis();
 
