@@ -2,6 +2,7 @@
 #include "TFT_eSPI.h" /* Please use the TFT library provided in the library. */
 #include "img_logo.h"
 #include "pin_config.h"
+#include "station_1.h"
 
 //-------------------------------------Display images
 
@@ -24,14 +25,8 @@ uint32_t icount = 0;
 //-------------------------------------Display images (end)
 
 //---------------------------Analog Voltage Read for solar panel
-const int meterWidth = 240;            // Width of the meter
-const int meterHeight = 40;            // Height of the meter
-const int meterX = 0;                  // X position of the meter
-const int meterY = 120;                // Y position of the meter
-const int voltagePin = 1;              // GPIO pin for voltage measurement
-const float voltageMax = 3.3;          // Maximum voltage value (T-Display S3 operates at 3.3V)
-const int meterColor = TFT_GREEN;      // Color of the meter
-const int backgroundColor = TFT_BLACK; // Background color
+int solarPanelPin = 1;
+float energyGenerated = 10; // in KWh
 
 //---------------------------Analog Voltage Read for solar panel
 
@@ -76,6 +71,8 @@ void setup()
 
   Serial.begin(115200);
   Serial.println("Hello T-Display-S3");
+  tft.setTextSize(2); // Set the text size
+  tft.setTextDatum(MC_DATUM);
 
   tft.begin();
 
@@ -109,23 +106,50 @@ void loop()
 {
 
   tft.setRotation(0); // landscape
-  tft.fillScreen(TFT_WHITE);
-  drawArrayJpeg(Baboon, sizeof(Baboon), 0, 4); // Draw a jpeg image stored in memory
-  delay(2000);
+  tft.fillScreen(TFT_BLACK);
+
+  // Draw a black rectangle on the right half of the screen
+  tft.fillRect(0, tft.height() / 2 + 22, tft.width(), tft.height() / 2 + 22, TFT_WHITE);
+  drawArrayJpeg(station_1, sizeof(station_1), 26.5, 186); // Draw a jpeg image stored in memory
+                                                          // delay(5000000); // Delay for a short period of time
+  tft.drawLine(0, 180, tft.width(), 180, TFT_MAGENTA);
+  tft.drawLine(0, 179, tft.width(), 179, TFT_MAGENTA);
+  tft.drawLine(0, 178, tft.width(), 178, TFT_MAGENTA);
+  tft.drawLine(0, 72, tft.width(), 72, TFT_MAGENTA);
+
+  targetTime = millis();
 
   while (true)
   {
-    float voltage = analogRead(voltagePin) * voltageMax / 4095.0; // Read voltage from analog input (12-bit resolution for T-Display S3)
-    drawMeter(voltage);                                           // Draw the voltage meter
-    targetTime = millis();
-    Serial.println(voltage);
-    delay(1000);
+    // Solar Panel
+    float power = analogRead(solarPanelPin) * 2.5 / 4095; // Read voltage from ADC
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString("Solar Power", 72, 12, 1);
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.drawFloat(power, 4, 50, 38, 2);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString("kW", 142, 40, 2);
+
+    // Station Energy Available
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString("Available", 60, 102, 1);
+    tft.drawString("Energy", 42, 120, 1);
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+
+    // energy produced in one second
+    energyGenerated = energyGenerated + (power / 3600); //  1 hour = 3600 second. Since, loop is running in each second
+
+    tft.drawFloat(energyGenerated, 4, 53, 145, 2);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString("kWh", 145, 147, 2);
+
+    delay(500);
   }
 
   delay(5000000); // Delay for a short period of time
 
   // First we test them with a background colour set
-  tft.setTextSize(1);
+  // tft.setTextSize(1);
   tft.fillScreen(TFT_WHITE);
   tft.setTextColor(TFT_BLACK, TFT_WHITE);
   tft.drawString("Available", 0, 48, 2);
@@ -195,7 +219,7 @@ void loop()
   // Now test them with transparent background
   targetTime = millis();
 
-  tft.setTextSize(1);
+  // tft.setTextSize(1);
   // tft.fillScreen(TFT_WHITE);
   // tft.setTextColor(TFT_BLACK, TFT_WHITE);
 
@@ -419,24 +443,4 @@ void showTime(uint32_t msTime)
   Serial.print(F(" JPEG drawn in "));
   Serial.print(msTime);
   Serial.println(F(" ms "));
-}
-
-void drawMeter(float value)
-{
-  // Clear the previous meter value
-  tft.fillRect(meterX, meterY, meterWidth, meterHeight, backgroundColor);
-
-  // Calculate the width of the meter based on the value
-  int meterValueWidth = map(value, 0.0, voltageMax, 0, meterWidth);
-
-  // Draw the meter outline
-  tft.drawRect(meterX, meterY, meterWidth, meterHeight, meterColor);
-
-  // Draw the meter value
-  tft.fillRect(meterX, meterY, meterValueWidth, meterHeight, meterColor);
-
-  // Display the voltage value
-  tft.setTextColor(TFT_WHITE);
-  tft.setCursor(meterX + meterWidth + 10, meterY);
-  tft.print(value, 2); // Print the voltage value with 2 decimal places
 }
