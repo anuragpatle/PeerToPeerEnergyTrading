@@ -109,13 +109,13 @@ void loop()
   tft.fillScreen(TFT_BLACK);
 
   // Draw a black rectangle on the right half of the screen
-  tft.fillRect(0, tft.height() / 2 + 22, tft.width(), tft.height() / 2 + 22, TFT_WHITE);
+  tft.fillRect(0, tft.height() / 2 + 22, tft.width(), tft.height() / 2 + 22, TFT_LIGHTGREY);
   drawArrayJpeg(station_1, sizeof(station_1), 26.5, 186); // Draw a jpeg image stored in memory
                                                           // delay(5000000); // Delay for a short period of time
-  tft.drawLine(0, 180, tft.width(), 180, TFT_MAGENTA);
-  tft.drawLine(0, 179, tft.width(), 179, TFT_MAGENTA);
-  tft.drawLine(0, 178, tft.width(), 178, TFT_MAGENTA);
-  tft.drawLine(0, 72, tft.width(), 72, TFT_MAGENTA);
+  tft.drawLine(0, 180, tft.width(), 180, TFT_LIGHTGREY);
+  tft.drawLine(0, 179, tft.width(), 179, TFT_LIGHTGREY);
+  tft.drawLine(0, 178, tft.width(), 178, TFT_LIGHTGREY);
+  tft.drawLine(0, 72, tft.width(), 72, TFT_LIGHTGREY);
 
   targetTime = millis();
 
@@ -134,14 +134,18 @@ void loop()
     tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
     tft.drawString("Available", 60, 102, 1);
     tft.drawString("Energy", 42, 120, 1);
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
 
     // energy produced in one second
     energyGenerated = energyGenerated + (power / 3600); //  1 hour = 3600 second. Since, loop is running in each second
-
+    tft.setTextColor(TFT_BROWN, TFT_BLACK);
     tft.drawFloat(energyGenerated, 4, 53, 145, 2);
     tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
     tft.drawString("kWh", 145, 147, 2);
+
+    // QR: Scan me to FUEL
+    tft.setTextSize(2);
+    tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
+    tft.drawString("SCAN TO FUEL", 85, tft.height() - 10 , 1);
 
     delay(500);
   }
