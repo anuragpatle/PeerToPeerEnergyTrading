@@ -7,6 +7,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
+
 //-------------------------------------Display images
 
 // JPEG decoder library
@@ -20,9 +21,9 @@ const char *READINGS_AND_QR_SCREEN = "READINGS_AND_QR_SCREEN";
 const char *WHILE_CHARGING_SCREEN = "WHILE_CHARGING_SCREEN";
 
 int solarPanelPin = 1;
-float energyGenerated = 10; // in KWh
+float energyGenerated = 10.0000; // in KWh
 const char *SCREEN_MODE = READINGS_AND_QR_SCREEN;
-bool toggleScreenMode = 'true';
+bool toggleScreenMode = true;
 //---------------------------Analog Voltage Read for solar panel
 
 /* The product now has two screens, and the initialization code needs a small change in the new version. The LCD_MODULE_CMD_1 is used to define the
@@ -59,8 +60,10 @@ lcd_cmd_t lcd_st7789v[] = {
 };
 #endif
 
-const char *ssid = "CWLANGuest";
-const char *password = "welcomeguest";
+const char *ssid = "Neo6";
+const char *password = "999999999";
+// const char *ssid = "CWLANGuest";
+// const char *password = "welcomeguest";
 
 // Your Domain name with URL path or IP address with path
 const char *serverName = "20.96.116.65:80/api/v1/updateStationState/2";
@@ -122,9 +125,13 @@ void loop()
   Serial.println(WiFi.status()); // should be equal to 3
   while (WiFi.status() != WL_CONNECTED)
   {
-    Serial.println("Connecting to WiFi...");
+    Serial.println("Trying to connect to WiFi: " + (String)ssid);
     WiFi.begin(ssid, password);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString("Connecting to WiFi..", 60, 100, 1);
+    tft.drawString((String)ssid, 50, 130, 1);
     delay(20000);
+    tft.fillScreen(TFT_BLACK); // Clear the screen
   }
 
   Serial.println("Connected to WiFi");
@@ -148,7 +155,6 @@ void loop()
   if (strcmp(SCREEN_MODE, WHILE_CHARGING_SCREEN) == 0 && toggleScreenMode == true)
   {
     toggleScreenMode = false;
-
   }
 
   // targetTime = millis();
@@ -180,6 +186,8 @@ void loop()
   tft.setTextSize(2);
   tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
   tft.drawString("SCAN TO FUEL", 85, tft.height() - 10, 1);
+
+  updateEnergyAvailableAndRateOfEnergyGeneration(energyGenerated, power);
 
   delay(500);
 }
@@ -342,3 +350,54 @@ void jpegInfo()
 //   Serial.print(msTime);
 //   Serial.println(F(" ms "));
 // }
+
+void updateEnergyAvailableAndRateOfEnergyGeneration(float capacity, float rateOfGeneration)
+{
+
+  char strCapacity[10];
+  dtostrf(capacity, 6, 6, strCapacity);
+
+  char strRateOfGeneration[10];
+  dtostrf(rateOfGeneration, 6, 6, strRateOfGeneration);
+
+  HTTPClient http;
+  String url = "http://20.96.116.65:80/api/v1/updateStationState/4/" + String(strCapacity) + "/" + String(strRateOfGeneration) + "";
+  // String updateEnergy = "http://20.96.116.65:80/api/v1/updateStationEnergy/2";
+  // String getStationsStateURL = "http://20.96.116.65:80:80/api/v1/getStationsState/";
+
+  // String body = "PUT sent from ESP32";
+
+  // Create a JSON object
+  //  energy.deviceId = req.body.deviceId,
+  //    energy.stationType= req.body.stationtype,
+  //    energy.capacity = req.body.capacity,
+  //    energy.rateOfEnergyGeneration = req.body.rateOfEnergyGeneration,
+  //    energy.qrCode = req.body.qrcode,
+  //    energy.charging = req.body.charging;
+
+  String body = "[{\"rateOfEnergyGeneration\": \"99\",\"capacity\":\"99\"}]";
+  // String jsonPayload = "{ \"deviceId\":\"2\", "\stationtype\":"\\"stationId\": \"4\", \"rateOfEnergyGeneration\": \"55\", \"capacity\":\"40511\" }";
+
+  // String energyPayload = 66
+  http.addHeader("Content-Type", "application/json");
+  // http.addHeader("Content-Type", "text/plain");
+  // http.addHeader("Content-Length", "65");
+  // http.addHeader("Accept", "*/*");
+  http.begin("http://20.96.116.65:80/api/v1/testForESP32");
+  // http.PUT(httpRequestBody);
+  // Set the content type header to indicate JSON data
+
+  int httpResponseCode = http.POST("{ \"myKey\": \"99\"}");
+  // int httpResponseCode = http.GET();
+  if (httpResponseCode > 0)
+  {
+    Serial.println("HTTP Response Code: " + String(httpResponseCode));
+    Serial.println("HTTP Response : " + String(http.getString()));
+  }
+  else
+  {
+    Serial.println("Error on HTTP request" + String(httpResponseCode));
+  }
+  http.end();
+  delay(5000);
+}
