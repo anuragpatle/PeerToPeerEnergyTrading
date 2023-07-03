@@ -1,12 +1,12 @@
 #include "Arduino.h"
 #include "TFT_eSPI.h" /* Please use the TFT library provided in the library. */
-#include "img_logo.h"
 #include "pin_config.h"
 #include "station_1.h"
+#include "charging1.h"
 
 #include <WiFi.h>
 #include <HTTPClient.h>
-
+#include "TSINLogo.h"
 
 //-------------------------------------Display images
 
@@ -17,13 +17,16 @@
 #define minimum(a, b) (((a) < (b)) ? (a) : (b))
 
 //---------------------------Analog Voltage Read for solar panel
-const char *READINGS_AND_QR_SCREEN = "READINGS_AND_QR_SCREEN";
-const char *WHILE_CHARGING_SCREEN = "WHILE_CHARGING_SCREEN";
+char *HOME_SCREEN = "READINGS_AND_QR_SCREEN";
+char *WHILE_CHARGING_SCREEN = "WHILE_CHARGING_SCREEN";
 
 int solarPanelPin = 1;
 float energyGenerated = 10.0000; // in KWh
-const char *SCREEN_MODE = READINGS_AND_QR_SCREEN;
+char *present_screen_mode = HOME_SCREEN;
+char *lastScreenMode = WHILE_CHARGING_SCREEN;
 bool toggleScreenMode = true;
+bool isVehicleCharging = false;
+char *vehicleChargingState = "FUELING";
 //---------------------------Analog Voltage Read for solar panel
 
 /* The product now has two screens, and the initialization code needs a small change in the new version. The LCD_MODULE_CMD_1 is used to define the
@@ -74,7 +77,7 @@ unsigned long lastTime = 0;
 // Timer set to 10 minutes (600000)
 // unsigned long timerDelay = 600000;
 // Set timer to 5 seconds (5000)
-unsigned long timerDelay = 5000;
+// unsigned long timerDelay = 5000;
 
 void setup()
 {
@@ -107,7 +110,6 @@ void setup()
 #endif
 
   tft.setRotation(0);
-  tft.fillScreen(TFT_BLACK);
   // tft.setSwapBytes(true);
   // tft.pushImage(0, 0, 320, 170, (uint16_t *)img_logo);
   // delay(2000);
@@ -115,12 +117,11 @@ void setup()
   // ledcSetup(0, 2000, 8);
   // ledcAttachPin(PIN_LCD_BL, 0);
   // ledcWrite(0, 255);
+  tft.fillScreen(TFT_BLACK);
 }
 
-void loop()
+void connectToWifi()
 {
-
-  // Connect to Wi-Fi network
 
   Serial.println(WiFi.status()); // should be equal to 3
   while (WiFi.status() != WL_CONNECTED)
@@ -137,57 +138,142 @@ void loop()
   Serial.println("Connected to WiFi");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+}
+int count = 0;
+void loop()
+{
 
-  if (strcmp(SCREEN_MODE, READINGS_AND_QR_SCREEN) == 0 && toggleScreenMode == true)
-  {
+  // ++count;
 
-    toggleScreenMode = false;
-    // Draw a black rectangle on the right half of the screen
-    tft.fillRect(0, tft.height() / 2 + 22, tft.width(), tft.height() / 2 + 22, TFT_LIGHTGREY);
-    drawArrayJpeg(station_1, sizeof(station_1), 26.5, 186); // Draw a jpeg image stored in memory
-                                                            // delay(5000000); // Delay for a short period of time
-    // tft.drawLine(0, 180, tft.width(), 180, TFT_SKYBLUE);
-    // tft.drawLine(0, 179, tft.width(), 179, TFT_SKYBLUE);
-    // tft.drawLine(0, 178, tft.width(), 178, TFT_SKYBLUE);
-    tft.drawLine(0, 72, tft.width(), 72, TFT_SKYBLUE);
-  }
-
-  if (strcmp(SCREEN_MODE, WHILE_CHARGING_SCREEN) == 0 && toggleScreenMode == true)
-  {
-    toggleScreenMode = false;
-  }
-
-  // targetTime = millis();
-
-  // while (true)
+  // if ((count % 7) == 0)
   // {
-  // Solar Panel
-  float power = analogRead(solarPanelPin) * 2.5 / 4095; // Read voltage from ADC
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.drawString("Solar Power", 72, 12, 1);
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.drawFloat(power, 4, 50, 38, 2);
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.drawString("kW", 142, 40, 2);
+  //   isVehicleCharging = true;
+  // }
+  // else
+  // {
+  //   isVehicleCharging = false;
+  // }
 
-  // Station Energy Available
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.drawString("Available", 60, 102, 1);
-  tft.drawString("Energy", 42, 120, 1);
+  // Connect to Wi-Fi network
+  // connectToWifi();
 
-  // energy produced in one second
-  energyGenerated = energyGenerated + (power / 3600); //  1 hour = 3600 second. Since, loop is running in each second
-  tft.setTextColor(TFT_BROWN, TFT_BLACK);
-  tft.drawFloat(energyGenerated, 4, 53, 145, 2);
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.drawString("kWh", 145, 147, 2);
+  tft.fillScreen(TFT_BLACK);
+  drawArrayJpeg(tsinlogo, sizeof(tsinlogo), 0, 0); // Draw a jpeg image stored in memory
+  while (true)
+  {
+    drawArrayJpeg(charging1, sizeof(charging1), 40, 40); // Draw a jpeg image stored in memory
+    delay(1000);
+    tft.fillRect(0, 26, tft.width(), tft.height() - 26, TFT_BLACK);
+    delay(500);
+  }
 
-  // QR: Scan me to FUEL
-  tft.setTextSize(2);
-  tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
-  tft.drawString("SCAN TO FUEL", 85, tft.height() - 10, 1);
+  if (isVehicleCharging)
+  {
+    present_screen_mode = WHILE_CHARGING_SCREEN;
+  }
+  else
+  {
+    present_screen_mode = HOME_SCREEN;
+  }
 
-  updateEnergyAvailableAndRateOfEnergyGeneration(energyGenerated, power);
+  if (strcmp(present_screen_mode, HOME_SCREEN) == 0)
+  {
+
+    if (strcmp(lastScreenMode, WHILE_CHARGING_SCREEN) == 0)
+    {
+
+      tft.fillScreen(TFT_BLACK);
+
+      toggleScreenMode = false;
+      // Draw a black rectangle on the right half of the screen
+      tft.fillRect(0, tft.height() / 2 + 22, tft.width(), tft.height() / 2 + 22, TFT_LIGHTGREY);
+      drawArrayJpeg(station_1, sizeof(station_1), 26.5, 186); // Draw a jpeg image stored in memory
+                                                              // delay(5000000); // Delay for a short period of time
+      // tft.drawLine(0, 180, tft.width(), 180, TFT_SKYBLUE);
+      // tft.drawLine(0, 179, tft.width(), 179, TFT_SKYBLUE);
+      // tft.drawLine(0, 178, tft.width(), 178, TFT_SKYBLUE);
+      tft.drawLine(0, 72, tft.width(), 72, TFT_SKYBLUE);
+      lastScreenMode = HOME_SCREEN;
+    }
+
+    float power = analogRead(solarPanelPin) * 2.5 / 4095; // Read voltage from ADC
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString("Solar Power", 72, 12, 1);
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.drawFloat(power, 4, 50, 38, 2);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString("kW", 142, 40, 2);
+
+    // Station Energy Available
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString("Available", 60, 102, 1);
+    tft.drawString("Energy", 42, 120, 1);
+
+    // energy produced in one second
+    energyGenerated = energyGenerated + (power / 3600); //  1 hour = 3600 second. Since, loop is running in each second
+    tft.setTextColor(TFT_BROWN, TFT_BLACK);
+    tft.drawFloat(energyGenerated, 4, 53, 145, 2);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString("kWh", 145, 147, 2);
+
+    // QR: Scan me to FUEL
+    tft.setTextSize(2);
+    tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
+    tft.drawString("SCAN TO FUEL", 85, tft.height() - 10, 1);
+
+    updateEnergyAvailableAndRateOfEnergyGeneration(energyGenerated, power);
+  }
+
+  if (strcmp(present_screen_mode, WHILE_CHARGING_SCREEN) == 0 && strcmp(lastScreenMode, HOME_SCREEN) == 0)
+  {
+
+    if (strcmp(vehicleChargingState, "NOT_INITIATED"))
+    {
+      tft.fillScreen(TFT_LIGHTGREY);
+      tft.setTextSize(2);
+      tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
+      tft.drawString("Initiating charging..", 85, tft.height() - 10, 1);
+    }
+
+    delay(4000);
+
+    if (strcmp(vehicleChargingState, "FUELING"))
+    {
+      tft.fillScreen(TFT_BLACK);
+      drawArrayJpeg(charging1, sizeof(charging1), 0, 60); // Draw a jpeg image stored in memory
+      while (strcmp(vehicleChargingState, "FUELING"))
+      {
+        tft.setTextSize(2);
+        tft.setTextColor(TFT_BACKLIGHT_ON, TFT_WHITE);
+        tft.drawString("CHARGING.  ", 85, tft.height() - 10, 1);
+        delay(100);
+        tft.drawString("CHARGING.. ", 85, tft.height() - 10, 1);
+        delay(100);
+        tft.drawString("CHARGING...", 85, tft.height() - 10, 1);
+        delay(100);
+      }
+    }
+
+    if (strcmp(vehicleChargingState, "FUELING_COMPLETE_AND_PENDING_FOR_PAYMENT"))
+    {
+      tft.fillScreen(TFT_LIGHTGREY);
+      tft.setTextSize(2);
+      tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
+      tft.drawString("Waiting for the payment", 85, tft.height() - 10, 1);
+    }
+    delay(4000);
+
+    if (strcmp(vehicleChargingState, "COMPLETE"))
+    {
+      tft.fillScreen(TFT_LIGHTGREY);
+      tft.setTextSize(2);
+      tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
+      tft.drawString("Charging complete..", 85, tft.height() - 10, 1);
+    }
+    delay(4000);
+
+    lastScreenMode = WHILE_CHARGING_SCREEN;
+  }
 
   delay(500);
 }
@@ -361,7 +447,7 @@ void updateEnergyAvailableAndRateOfEnergyGeneration(float capacity, float rateOf
   dtostrf(rateOfGeneration, 6, 6, strRateOfGeneration);
 
   HTTPClient http;
-  String url = "http://20.96.116.65:80/api/v1/updateStationState/4/" + String(strCapacity) + "/" + String(strRateOfGeneration) + "";
+  String url = "http://20.96.116.65:80/api/v1/updateStationState/3/" + String(strCapacity) + "/" + String(strRateOfGeneration) + "";
   // String updateEnergy = "http://20.96.116.65:80/api/v1/updateStationEnergy/2";
   // String getStationsStateURL = "http://20.96.116.65:80:80/api/v1/getStationsState/";
 
@@ -383,11 +469,11 @@ void updateEnergyAvailableAndRateOfEnergyGeneration(float capacity, float rateOf
   // http.addHeader("Content-Type", "text/plain");
   // http.addHeader("Content-Length", "65");
   // http.addHeader("Accept", "*/*");
-  http.begin("http://20.96.116.65:80/api/v1/testForESP32");
+  http.begin(url);
   // http.PUT(httpRequestBody);
   // Set the content type header to indicate JSON data
 
-  int httpResponseCode = http.POST("{ \"myKey\": \"99\"}");
+  int httpResponseCode = http.PUT("{ \"myKey\": \"99\"}");
   // int httpResponseCode = http.GET();
   if (httpResponseCode > 0)
   {
@@ -399,5 +485,5 @@ void updateEnergyAvailableAndRateOfEnergyGeneration(float capacity, float rateOf
     Serial.println("Error on HTTP request" + String(httpResponseCode));
   }
   http.end();
-  delay(5000);
+  delay(500);
 }
