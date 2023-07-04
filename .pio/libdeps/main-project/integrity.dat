@@ -1,2 +1,7 @@
+GFXfont
+adafruit/Adafruit BusIO@^1.14.1
 bodmer/JPEGDecoder@^1.8.1
 arduino-libraries/Arduino_JSON@^0.2.0
+Wire
+adafruit/Adafruit GFX Library@^1.11.5
+SPI

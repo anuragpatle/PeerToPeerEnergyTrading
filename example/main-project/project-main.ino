@@ -3,10 +3,11 @@
 #include "pin_config.h"
 #include "station_1.h"
 #include "charging1.h"
-
+#include <Wire.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include "TSINLogo.h"
+#include "Orbitron_Medium_20.h"
 
 //-------------------------------------Display images
 
@@ -88,10 +89,21 @@ void setup()
   digitalWrite(PIN_POWER_ON, HIGH);
 
   Serial.println("Hello T-Display-S3");
-  tft.setTextSize(2); // Set the text size
-  tft.setTextDatum(MC_DATUM);
-
   tft.begin();
+
+  tft.setRotation(0);
+  tft.setSwapBytes(true);
+  tft.setTextSize(1); // Set the text size
+  tft.setTextDatum(MC_DATUM);
+  // tft.setFreeFont(&Orbitron_Medium_20);
+
+  // tft.pushImage(0, 0, 320, 170, (uint16_t *)img_logo);
+  // delay(2000);
+
+  // ledcSetup(0, 2000, 8);
+  // ledcAttachPin(PIN_LCD_BL, 0);
+  // ledcWrite(0, 255);
+  tft.fillScreen(TFT_BLACK);
 
 #if defined(LCD_MODULE_CMD_1)
   for (uint8_t i = 0; i < (sizeof(lcd_st7789v) / sizeof(lcd_cmd_t)); i++)
@@ -108,16 +120,6 @@ void setup()
     }
   }
 #endif
-
-  tft.setRotation(0);
-  // tft.setSwapBytes(true);
-  // tft.pushImage(0, 0, 320, 170, (uint16_t *)img_logo);
-  // delay(2000);
-
-  // ledcSetup(0, 2000, 8);
-  // ledcAttachPin(PIN_LCD_BL, 0);
-  // ledcWrite(0, 255);
-  tft.fillScreen(TFT_BLACK);
 }
 
 void connectToWifi()
@@ -158,12 +160,23 @@ void loop()
   // connectToWifi();
 
   tft.fillScreen(TFT_BLACK);
-  drawArrayJpeg(tsinlogo, sizeof(tsinlogo), 0, 0); // Draw a jpeg image stored in memory
+  // drawArrayJpeg(tsinlogo, sizeof(tsinlogo), 0, tft.height() - 25); // Draw a jpeg image stored in memory
+  tft.pushImage(30, tft.height() - 25, 105, 25, TSINLogo);
+
   while (true)
   {
-    drawArrayJpeg(charging1, sizeof(charging1), 40, 40); // Draw a jpeg image stored in memory
+    drawArrayJpeg(charging1, sizeof(charging1), 40, 70); // Draw a jpeg image stored in memory
     delay(1000);
-    tft.fillRect(0, 26, tft.width(), tft.height() - 26, TFT_BLACK);
+    tft.fillRect(0, 26, tft.width(), tft.height() - 60, TFT_BLACK);
+    // tft.setTextSize(2);
+    tft.setFreeFont(&Orbitron_Medium_20);
+    tft.setCursor(6, 82);
+    tft.println("town");
+    // tft.drawString("Time: ", 10, 20, 2);
+    // tft.setTextColor(TFT_BROWN, TFT_BLACK);
+    // tft.setTextColor(0xffff);
+    // tft.drawString("44", 50, 20, 2);
+
     delay(500);
   }
 
@@ -217,7 +230,7 @@ void loop()
     tft.drawString("kWh", 145, 147, 2);
 
     // QR: Scan me to FUEL
-    tft.setTextSize(2);
+    // tft.setTextSize(15);
     tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
     tft.drawString("SCAN TO FUEL", 85, tft.height() - 10, 1);
 
@@ -230,7 +243,7 @@ void loop()
     if (strcmp(vehicleChargingState, "NOT_INITIATED"))
     {
       tft.fillScreen(TFT_LIGHTGREY);
-      tft.setTextSize(2);
+      tft.setTextSize(1);
       tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
       tft.drawString("Initiating charging..", 85, tft.height() - 10, 1);
     }
@@ -243,7 +256,7 @@ void loop()
       drawArrayJpeg(charging1, sizeof(charging1), 0, 60); // Draw a jpeg image stored in memory
       while (strcmp(vehicleChargingState, "FUELING"))
       {
-        tft.setTextSize(2);
+        tft.setTextSize(1);
         tft.setTextColor(TFT_BACKLIGHT_ON, TFT_WHITE);
         tft.drawString("CHARGING.  ", 85, tft.height() - 10, 1);
         delay(100);
