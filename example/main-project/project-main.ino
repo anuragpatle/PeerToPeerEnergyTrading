@@ -95,7 +95,7 @@ void setup()
   tft.setSwapBytes(true);
   tft.setTextSize(1); // Set the text size
   tft.setTextDatum(MC_DATUM);
-  // tft.setFreeFont(&Orbitron_Medium_20);
+  tft.setFreeFont(&Orbitron_Medium_20);
 
   // tft.pushImage(0, 0, 320, 170, (uint16_t *)img_logo);
   // delay(2000);
@@ -165,17 +165,35 @@ void loop()
 
   while (true)
   {
-    drawArrayJpeg(charging1, sizeof(charging1), 40, 70); // Draw a jpeg image stored in memory
+
+    drawArrayJpeg(charging1, sizeof(charging1), 50, 50); // Draw a jpeg image stored in memory
     delay(1000);
-    tft.fillRect(0, 26, tft.width(), tft.height() - 60, TFT_BLACK);
-    // tft.setTextSize(2);
-    tft.setFreeFont(&Orbitron_Medium_20);
-    tft.setCursor(6, 82);
-    tft.println("town");
-    // tft.drawString("Time: ", 10, 20, 2);
-    // tft.setTextColor(TFT_BROWN, TFT_BLACK);
-    // tft.setTextColor(0xffff);
-    // tft.drawString("44", 50, 20, 2);
+
+    tft.fillRect(50, 45, 80, 190, TFT_BLACK);
+
+    // Time
+    tft.setTextSize(1);
+    tft.setCursor(0, 30);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.println("Time(s) ");
+    tft.setTextSize(1);
+    tft.setCursor(95, 30);
+    tft.setTextColor(0x85929E, TFT_BLACK);
+    tft.println("300");
+
+    // Energy Transfered
+    tft.setTextSize(1);
+    tft.setCursor(5, 225);
+    tft.setTextColor(TFT_BROWN, TFT_BLACK);
+    tft.println("66 KWh");
+
+    // Cost
+    tft.setCursor(5, 260);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.println("Cost");
+    tft.setCursor(70, 260);
+    tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+    tft.println("550");
 
     delay(500);
   }
@@ -302,7 +320,7 @@ void drawArrayJpeg(const uint8_t arrayname[], uint32_t array_size, int xpos, int
 
   JpegDec.decodeArray(arrayname, array_size);
 
-  jpegInfo(); // Print information from the JPEG file (could comment this line out)
+  // jpegInfo(); // Print information from the JPEG file (could comment this line out)
 
   renderJPEG(x, y);
 
