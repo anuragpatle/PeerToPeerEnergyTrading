@@ -26,8 +26,8 @@ float energyGenerated = 10.0000; // in KWh
 char *present_screen_mode = HOME_SCREEN;
 char *lastScreenMode = WHILE_CHARGING_SCREEN;
 bool toggleScreenMode = true;
-bool isVehicleCharging = false;
-char *vehicleChargingState = "FUELING";
+bool isVehicleFueling = false;
+char *stationState = "FUELING";
 //---------------------------Analog Voltage Read for solar panel
 
 /* The product now has two screens, and the initialization code needs a small change in the new version. The LCD_MODULE_CMD_1 is used to define the
@@ -128,10 +128,10 @@ void connectToWifi()
   Serial.println(WiFi.status()); // should be equal to 3
   while (WiFi.status() != WL_CONNECTED)
   {
-    Serial.println("Trying to connect to WiFi: " + (String)ssid);
+    Serial.println("Connecting WiFi: " + (String)ssid);
     WiFi.begin(ssid, password);
     tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-    tft.drawString("Connecting to WiFi..", 60, 100, 1);
+    tft.drawString("Connecting WiFi..", 50, 100, 1);
     tft.drawString((String)ssid, 50, 130, 1);
     delay(20000);
     tft.fillScreen(TFT_BLACK); // Clear the screen
@@ -145,60 +145,21 @@ int count = 0;
 void loop()
 {
 
-  // ++count;
+  ++count;
 
-  // if ((count % 7) == 0)
-  // {
-  //   isVehicleCharging = true;
-  // }
-  // else
-  // {
-  //   isVehicleCharging = false;
-  // }
-
-  // Connect to Wi-Fi network
-  // connectToWifi();
-
-  tft.fillScreen(TFT_BLACK);
-  // drawArrayJpeg(tsinlogo, sizeof(tsinlogo), 0, tft.height() - 25); // Draw a jpeg image stored in memory
-  tft.pushImage(30, tft.height() - 25, 105, 25, TSINLogo);
-
-  while (true)
+  if ((count % 7) == 0)
   {
-
-    drawArrayJpeg(charging1, sizeof(charging1), 50, 50); // Draw a jpeg image stored in memory
-    delay(1000);
-
-    tft.fillRect(50, 45, 80, 190, TFT_BLACK);
-
-    // Time
-    tft.setTextSize(1);
-    tft.setCursor(0, 30);
-    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-    tft.println("Time(s) ");
-    tft.setTextSize(1);
-    tft.setCursor(95, 30);
-    tft.setTextColor(0x85929E, TFT_BLACK);
-    tft.println("300");
-
-    // Energy Transfered
-    tft.setTextSize(1);
-    tft.setCursor(5, 225);
-    tft.setTextColor(TFT_BROWN, TFT_BLACK);
-    tft.println("66 KWh");
-
-    // Cost
-    tft.setCursor(5, 260);
-    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-    tft.println("Cost");
-    tft.setCursor(70, 260);
-    tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-    tft.println("550");
-
-    delay(500);
+    isVehicleFueling = true;
+  }
+  else
+  {
+    isVehicleFueling = false;
   }
 
-  if (isVehicleCharging)
+  // Connect to Wi-Fi network
+  connectToWifi();
+
+  if (isVehicleFueling)
   {
     present_screen_mode = WHILE_CHARGING_SCREEN;
   }
@@ -207,15 +168,15 @@ void loop()
     present_screen_mode = HOME_SCREEN;
   }
 
+  // Logic for Home Screen
   if (strcmp(present_screen_mode, HOME_SCREEN) == 0)
   {
 
-    if (strcmp(lastScreenMode, WHILE_CHARGING_SCREEN) == 0)
+    if (strcmp(lastScreenMode, HOME_SCREEN) != 0)
     {
 
       tft.fillScreen(TFT_BLACK);
 
-      toggleScreenMode = false;
       // Draw a black rectangle on the right half of the screen
       tft.fillRect(0, tft.height() / 2 + 22, tft.width(), tft.height() / 2 + 22, TFT_LIGHTGREY);
       drawArrayJpeg(station_1, sizeof(station_1), 26.5, 186); // Draw a jpeg image stored in memory
@@ -227,83 +188,118 @@ void loop()
       lastScreenMode = HOME_SCREEN;
     }
 
-    float power = analogRead(solarPanelPin) * 2.5 / 4095; // Read voltage from ADC
-    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-    tft.drawString("Solar Power", 72, 12, 1);
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
-    tft.drawFloat(power, 4, 50, 38, 2);
-    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-    tft.drawString("kW", 142, 40, 2);
+    while (count % 4 == 0)
+    {
+      ++count;
+      float power = analogRead(solarPanelPin) * 2.5 / 4095; // Read voltage from ADC
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.drawString("Solar Power", 80, 15, 1);
+      tft.setTextColor(TFT_GREEN, TFT_BLACK);
+      // tft.setTextSize(2);
+      tft.drawFloat(power, 4, 54, 52, 4);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.drawString("kW", 133, 51);
 
-    // Station Energy Available
-    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-    tft.drawString("Available", 60, 102, 1);
-    tft.drawString("Energy", 42, 120, 1);
+      // Station Energy Available
+      // tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      // tft.drawString("Available", 60, 85, 4);
+      // tft.drawString("Energy", 40, 100, 4);
+      tft.setTextSize(1);
+      tft.setCursor(5, 100);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.println("Available");
 
-    // energy produced in one second
-    energyGenerated = energyGenerated + (power / 3600); //  1 hour = 3600 second. Since, loop is running in each second
-    tft.setTextColor(TFT_BROWN, TFT_BLACK);
-    tft.drawFloat(energyGenerated, 4, 53, 145, 2);
-    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-    tft.drawString("kWh", 145, 147, 2);
+      tft.setCursor(5, 120);
+      tft.print("Energy");
 
-    // QR: Scan me to FUEL
-    // tft.setTextSize(15);
-    tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
-    tft.drawString("SCAN TO FUEL", 85, tft.height() - 10, 1);
+      // energy produced in one second
+      energyGenerated = energyGenerated + (power / 3600); //  1 hour = 3600 second. Since, loop is running in each second
+      tft.setTextColor(TFT_BROWN, TFT_BLACK);
+      tft.drawFloat(energyGenerated, 4, 53, 150, 4);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.drawString("kWh", 141, 145);
 
-    updateEnergyAvailableAndRateOfEnergyGeneration(energyGenerated, power);
+      // QR: Scan me to FUEL
+      // tft.setTextSize(15);
+      tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
+      tft.setCursor(0, tft.height() - 10);
+      tft.print("SCAN n FUEL");
+
+      delay(1000);
+      updateEnergyAvailableAndRateOfEnergyGeneration(energyGenerated, power);
+    }
   }
 
-  if (strcmp(present_screen_mode, WHILE_CHARGING_SCREEN) == 0 && strcmp(lastScreenMode, HOME_SCREEN) == 0)
+  // Logic For Charging Screens
+  if (strcmp(present_screen_mode, WHILE_CHARGING_SCREEN) == 0)
   {
 
-    if (strcmp(vehicleChargingState, "NOT_INITIATED"))
-    {
-      tft.fillScreen(TFT_LIGHTGREY);
-      tft.setTextSize(1);
-      tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
-      tft.drawString("Initiating charging..", 85, tft.height() - 10, 1);
-    }
-
-    delay(4000);
-
-    if (strcmp(vehicleChargingState, "FUELING"))
+    if (strcmp(lastScreenMode, HOME_SCREEN) == 0)
     {
       tft.fillScreen(TFT_BLACK);
-      drawArrayJpeg(charging1, sizeof(charging1), 0, 60); // Draw a jpeg image stored in memory
-      while (strcmp(vehicleChargingState, "FUELING"))
+      // drawArrayJpeg(tsinlogo, sizeof(tsinlogo), 0, tft.height() - 25); // Draw a jpeg image stored in memory
+      tft.pushImage(30, tft.height() - 25, 105, 25, TSINLogo);
+      lastScreenMode = WHILE_CHARGING_SCREEN;
+    }
+
+    while (strcmp(stationState, "FUELING") == 0)
+    {
+
+      ++count;
+      drawArrayJpeg(charging1, sizeof(charging1), 50, 50); // Draw a jpeg image stored in memory
+      delay(1000);
+
+      tft.fillRect(50, 45, 80, 190, TFT_BLACK);
+
+      // Time
+      tft.setTextSize(1);
+      tft.setCursor(0, 30);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.println("Time(s) ");
+      tft.setTextSize(1);
+      tft.setCursor(95, 30);
+      tft.setTextColor(0x85929E, TFT_BLACK);
+      tft.println("300");
+
+      // Energy Transfered
+      tft.setTextSize(1);
+      tft.setCursor(5, 225);
+      tft.setTextColor(TFT_BROWN, TFT_BLACK);
+      tft.println("66 KWh");
+
+      // Cost
+      tft.setCursor(5, 260);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.println("Cost");
+      tft.setCursor(70, 260);
+      tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+      tft.println("550");
+
+      delay(500);
+
+      if (count % 9 == 0)
       {
-        tft.setTextSize(1);
-        tft.setTextColor(TFT_BACKLIGHT_ON, TFT_WHITE);
-        tft.drawString("CHARGING.  ", 85, tft.height() - 10, 1);
-        delay(100);
-        tft.drawString("CHARGING.. ", 85, tft.height() - 10, 1);
-        delay(100);
-        tft.drawString("CHARGING...", 85, tft.height() - 10, 1);
-        delay(100);
+        stationState = "FUELING_COMPLETE_AND_PENDING_FOR_PAYMENT";
+        tft.fillScreen(TFT_LIGHTGREY);
+        tft.setCursor(5, 260);
+        tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        tft.println("Pending pay.");
+
+        delay(6000);
+      }
+
+      if (count % 9 == 0)
+      {
+        stationState = "COMPLETE";
+        tft.fillScreen(TFT_LIGHTGREY);
+        tft.setCursor(5, 260);
+        tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        tft.println("Complete.");
+        delay(6000);
+        break;
       }
     }
 
-    if (strcmp(vehicleChargingState, "FUELING_COMPLETE_AND_PENDING_FOR_PAYMENT"))
-    {
-      tft.fillScreen(TFT_LIGHTGREY);
-      tft.setTextSize(2);
-      tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
-      tft.drawString("Waiting for the payment", 85, tft.height() - 10, 1);
-    }
-    delay(4000);
-
-    if (strcmp(vehicleChargingState, "COMPLETE"))
-    {
-      tft.fillScreen(TFT_LIGHTGREY);
-      tft.setTextSize(2);
-      tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
-      tft.drawString("Charging complete..", 85, tft.height() - 10, 1);
-    }
-    delay(4000);
-
-    lastScreenMode = WHILE_CHARGING_SCREEN;
   }
 
   delay(500);
