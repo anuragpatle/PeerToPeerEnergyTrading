@@ -8,6 +8,7 @@
 #include <HTTPClient.h>
 #include "TSINLogo.h"
 #include "Orbitron_Medium_20.h"
+#include <ArduinoJson.h>
 
 //-------------------------------------Display images
 
@@ -26,8 +27,10 @@ float energyGenerated = 10.0000; // in KWh
 char *present_screen_mode = HOME_SCREEN;
 char *lastScreenMode = WHILE_CHARGING_SCREEN;
 bool toggleScreenMode = true;
-bool isVehicleFueling = false;
-char *stationState = "FUELING";
+// bool isVehicleFueling = false;
+String stationState;
+String fuelingStatus;
+int thisIOTDeviceId = 1;
 //---------------------------Analog Voltage Read for solar panel
 
 /* The product now has two screens, and the initialization code needs a small change in the new version. The LCD_MODULE_CMD_1 is used to define the
@@ -70,7 +73,7 @@ const char *password = "999999999";
 // const char *password = "welcomeguest";
 
 // Your Domain name with URL path or IP address with path
-const char *serverName = "20.96.116.65:80/api/v1/updateStationState/2";
+// const char *serverName = "20.96.116.65:80/api/v1/updateStationState/2";
 
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
@@ -128,11 +131,12 @@ void connectToWifi()
   Serial.println(WiFi.status()); // should be equal to 3
   while (WiFi.status() != WL_CONNECTED)
   {
-    Serial.println("Connecting WiFi: " + (String)ssid);
+    Serial.println("Connecting WiFi" + (String)ssid);
     WiFi.begin(ssid, password);
     tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-    tft.drawString("Connecting WiFi..", 50, 100, 1);
-    tft.drawString((String)ssid, 50, 130, 1);
+    tft.drawString("Connecting", 70, 100, 1);
+    tft.drawString("to WiFi..", 70, 130, 1);
+    tft.drawString((String)ssid, 50, 160, 1);
     delay(20000);
     tft.fillScreen(TFT_BLACK); // Clear the screen
   }
@@ -147,19 +151,19 @@ void loop()
 
   ++count;
 
-  if ((count % 7) == 0)
-  {
-    isVehicleFueling = true;
-  }
-  else
-  {
-    isVehicleFueling = false;
-  }
+  // if ((count % 7) == 0)
+  // {
+  //   isVehicleFueling = true;
+  // }
+  // else
+  // {
+  //   isVehicleFueling = false;
+  // }
 
   // Connect to Wi-Fi network
   connectToWifi();
 
-  if (isVehicleFueling)
+  if (fuelingStatus == "InProgress")
   {
     present_screen_mode = WHILE_CHARGING_SCREEN;
   }
@@ -188,7 +192,7 @@ void loop()
       lastScreenMode = HOME_SCREEN;
     }
 
-    while (count % 4 == 0)
+    while (true)
     {
       ++count;
       float power = analogRead(solarPanelPin) * 2.5 / 4095; // Read voltage from ADC
@@ -226,7 +230,13 @@ void loop()
       tft.print("SCAN n FUEL");
 
       delay(1000);
-      updateEnergyAvailableAndRateOfEnergyGeneration(energyGenerated, power);
+      updateEnergyAvailableAndRateOfEnergyGeneration(thisIOTDeviceId, energyGenerated, power);
+
+      String fuelingStatus = checkIfVehicleCharging(thisIOTDeviceId);
+      if (fuelingStatus == "InProgress")
+      {
+        break;
+      }
     }
   }
 
@@ -242,44 +252,46 @@ void loop()
       lastScreenMode = WHILE_CHARGING_SCREEN;
     }
 
-    while (strcmp(stationState, "FUELING") == 0)
+    while (fuelingStatus == "InProgress")
     {
 
-      ++count;
-      drawArrayJpeg(charging1, sizeof(charging1), 50, 50); // Draw a jpeg image stored in memory
-      delay(1000);
-
-      tft.fillRect(50, 45, 80, 190, TFT_BLACK);
-
-      // Time
-      tft.setTextSize(1);
-      tft.setCursor(0, 30);
-      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-      tft.println("Time(s) ");
-      tft.setTextSize(1);
-      tft.setCursor(95, 30);
-      tft.setTextColor(0x85929E, TFT_BLACK);
-      tft.println("300");
-
-      // Energy Transfered
-      tft.setTextSize(1);
-      tft.setCursor(5, 225);
-      tft.setTextColor(TFT_BROWN, TFT_BLACK);
-      tft.println("66 KWh");
-
-      // Cost
-      tft.setCursor(5, 260);
-      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-      tft.println("Cost");
-      tft.setCursor(70, 260);
-      tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-      tft.println("550");
-
-      delay(500);
-
-      if (count % 9 == 0)
+      if (stationState == "FUELING")
       {
-        stationState = "FUELING_COMPLETE_AND_PENDING_FOR_PAYMENT";
+        drawArrayJpeg(charging1, sizeof(charging1), 50, 50); // Draw a jpeg image stored in memory
+        delay(1000);
+
+        tft.fillRect(50, 45, 80, 190, TFT_BLACK);
+
+        // Time
+        tft.setTextSize(1);
+        tft.setCursor(0, 30);
+        tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        tft.println("Time(s) ");
+        tft.setTextSize(1);
+        tft.setCursor(95, 30);
+        tft.setTextColor(0x85929E, TFT_BLACK);
+        tft.println("300");
+
+        // Energy Transfered
+        tft.setTextSize(1);
+        tft.setCursor(5, 225);
+        tft.setTextColor(TFT_BROWN, TFT_BLACK);
+        tft.println("66 KWh");
+
+        // Cost
+        tft.setCursor(5, 260);
+        tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        tft.println("Cost");
+        tft.setCursor(70, 260);
+        tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+        tft.println("550");
+
+        delay(500);
+      }
+
+      if (stationState == "FUELING_COMPLETE_AND_PENDING_FOR_PAYMENT")
+      {
+
         tft.fillScreen(TFT_LIGHTGREY);
         tft.setCursor(5, 260);
         tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
@@ -288,9 +300,8 @@ void loop()
         delay(6000);
       }
 
-      if (count % 9 == 0)
+      if (stationState == "COMPLETE")
       {
-        stationState = "COMPLETE";
         tft.fillScreen(TFT_LIGHTGREY);
         tft.setCursor(5, 260);
         tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
@@ -299,7 +310,6 @@ void loop()
         break;
       }
     }
-
   }
 
   delay(500);
@@ -464,17 +474,21 @@ void jpegInfo()
 //   Serial.println(F(" ms "));
 // }
 
-void updateEnergyAvailableAndRateOfEnergyGeneration(float capacity, float rateOfGeneration)
+void updateEnergyAvailableAndRateOfEnergyGeneration(int thisIOTDeviceId, float capacity, float rateOfGeneration)
 {
 
   char strCapacity[10];
-  dtostrf(capacity, 6, 6, strCapacity);
+  dtostrf(capacity, 6, 4, strCapacity);
 
   char strRateOfGeneration[10];
-  dtostrf(rateOfGeneration, 6, 6, strRateOfGeneration);
+  dtostrf(rateOfGeneration, 6, 4, strRateOfGeneration);
+
+
+  Serial.println("strRateOfGeneration: " + (String)strRateOfGeneration);
+  Serial.println("strCapacity: " + (String)strCapacity);
 
   HTTPClient http;
-  String url = "http://20.96.116.65:80/api/v1/updateStationState/3/" + String(strCapacity) + "/" + String(strRateOfGeneration) + "";
+  String url = "http://20.96.116.65:80/api/v1/updateStationState/"+ String(thisIOTDeviceId) +"/" + String(strCapacity) + "/" + String(strRateOfGeneration) + "";
   // String updateEnergy = "http://20.96.116.65:80/api/v1/updateStationEnergy/2";
   // String getStationsStateURL = "http://20.96.116.65:80:80/api/v1/getStationsState/";
 
@@ -501,16 +515,121 @@ void updateEnergyAvailableAndRateOfEnergyGeneration(float capacity, float rateOf
   // Set the content type header to indicate JSON data
 
   int httpResponseCode = http.PUT("{ \"myKey\": \"99\"}");
-  // int httpResponseCode = http.GET();
-  if (httpResponseCode > 0)
+
+  if (httpResponseCode == HTTP_CODE_OK)
   {
-    Serial.println("HTTP Response Code: " + String(httpResponseCode));
-    Serial.println("HTTP Response : " + String(http.getString()));
+    String jsonResponse = http.getString();
+
+    // Parse the JSON response
+    // StaticJsonDocument<200> jsonDoc; // Adjust the capacity as per your JSON response size
+    // DeserializationError error = deserializeJson(jsonDoc, jsonResponse);
+
+    // Serial.println(jsonResponse);
+
+    // if (error)
+    // {
+    //   Serial.print("JSON parsing failed! Error code: ");
+    //   Serial.println(error.c_str());
+    // }
+    // else
+    // {
+    //   // Access the parsed data
+    //   const char *vehicleFuelingState = jsonDoc["vehicleFuelingState"];
+
+    //   // Do something with the extracted data
+    //   Serial.print("vehicleFuelingState: ");
+    //   Serial.println(vehicleFuelingState);
+    // }
   }
   else
   {
-    Serial.println("Error on HTTP request" + String(httpResponseCode));
+    Serial.print("HTTP GET request failed, error code: ");
+    Serial.println(httpResponseCode);
   }
+
   http.end();
-  delay(500);
+  delay(250);
+}
+
+String checkIfVehicleCharging(int deviceId)
+{
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    HTTPClient http;
+    http.begin("http://20.96.116.65:80/api/v1/VehicleFueling/" + String(deviceId) + "/" + String(deviceId));
+    int httpResponseCode = http.GET();
+
+    if (httpResponseCode == HTTP_CODE_OK)
+    {
+      String jsonResponse = http.getString();
+
+      Serial.println("#Get Req:" + jsonResponse);
+
+      // Allocate the JSON document
+      //
+      // Inside the brackets, 200 is the capacity of the memory pool in bytes.
+      // Don't forget to change this value to match your JSON document.
+      // To Set the capacity (here 260) https://arduinojson.org/v6/assistant/#/step1to compute the capacity.
+      StaticJsonDocument<260> jsonDoc;
+
+      // StaticJsonDocument<N> allocates memory on the stack, it can be
+      // replaced by DynamicJsonDocument which allocates in the heap.
+      //
+      // DynamicJsonDocument doc(200);
+
+      // JSON input string.
+      //
+      // Using a char[], as shown here, enables the "zero-copy" mode. This mode uses
+      // the minimal amount of memory because the JsonDocument stores pointers to
+      // the input buffer.
+      // If you use another type of input, ArduinoJson must copy the strings from
+      // the input to the JsonDocument, so you need to increase the capacity of the
+      // JsonDocument.
+      // char jsonResponse[] =
+      //     "{\"sensor\":\"gps\",\"time\":1351824120,\"data\":[48.756080,2.302038]}";
+
+      // Deserialize the JSON document
+      DeserializationError error = deserializeJson(jsonDoc, jsonResponse);
+
+      if (error)
+      {
+        Serial.print("JSON parsing failed! Error code: ");
+        Serial.println(error.c_str());
+      }
+      else
+      {
+        const char *_fuelingStatus = jsonDoc["fuelingStatus"];
+        const char *transferredEnergy = jsonDoc["transferredEnergy"];
+        int timeRemaining = jsonDoc["timeRemaining"];
+        int cost = jsonDoc["cost"];
+        const char *transactionState = jsonDoc["transactionState"];
+
+        Serial.print("Fueling Status: ");
+        Serial.println(_fuelingStatus);
+
+        fuelingStatus = _fuelingStatus;
+
+        Serial.print("Transferred Energy: ");
+        Serial.println(transferredEnergy);
+        Serial.print("Time Remaining: ");
+        Serial.println(timeRemaining);
+        Serial.print("Cost: ");
+        Serial.println(cost);
+        Serial.print("Transaction State: ");
+        Serial.println(transactionState);
+        stationState = transactionState;
+      }
+    }
+    else
+    {
+      Serial.print("HTTP GET request failed, error code: ");
+      Serial.println(httpResponseCode);
+    }
+
+    http.end();
+  }
+  delay(250); // Delay between subsequent GET requests
+
+  return fuelingStatus;
 }
