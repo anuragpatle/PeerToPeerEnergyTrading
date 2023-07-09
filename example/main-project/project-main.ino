@@ -30,10 +30,10 @@ bool toggleScreenMode = true;
 // bool isVehicleFueling = false;
 String stationState;
 String fuelingStatus;
-int thisIOTDeviceId = 4;
+int thisIOTDeviceId = 3;
 int transferredEnergy;
-int fromDevice;
-int timeRemaining;
+
+String _timeRemaining = "0";
 
 float cost;
 int POWER_FACTOR = 360;
@@ -100,7 +100,7 @@ void setup()
   Serial.println("Hello T-Display-S3");
   tft.begin();
 
-  tft.setRotation(3);
+  tft.setRotation(0);
   tft.setSwapBytes(true);
   tft.setTextSize(1); // Set the text size
   tft.setTextDatum(MC_DATUM);
@@ -161,49 +161,191 @@ void loop()
   // Connect to Wi-Fi network
   connectToWifi();
 
-  tft.fillScreen(TFT_BLACK);
-
-  tft.drawLine(0, 72, tft.width(), 72, TFT_SKYBLUE);
-
-  // float power = analogRead(solarPanelPin) * 2.5 / 4095; // Read voltage from ADC
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.drawString("Received Energy", 105, 15, 1);
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  // tft.setTextSize(2);
-  tft.drawFloat(availableEnergy, 4, 54, 52, 4);
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.drawString("kWh", 240, 51);
-
-  // Transfered From St.
-  tft.setTextSize(1);
-  tft.setCursor(5, 100);
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.println("Transfered From St. ");
-
-  tft.setTextColor(TFT_OLIVE, TFT_BLACK);
-  tft.drawNumber(fromDevice, 280, 105, 6);
-
-  tft.setTextColor(TFT_BROWN, TFT_BLACK);
-  tft.drawFloat(transferredEnergy, 4, 90, 135, 6);
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.drawString("kWh", 230, 135);
-
-  while (true)
+  if (checkIfVehicleCharging() == "InProgress")
   {
-    getTransactionState();
-
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
-    // tft.setTextSize(2);
-    tft.drawFloat(availableEnergy, 4, 54, 52, 4);
-
-    tft.setTextColor(TFT_OLIVE, TFT_BLACK);
-    tft.drawNumber(fromDevice, 280, 105, 6);
-
-    tft.setTextColor(TFT_BROWN, TFT_BLACK);
-    tft.drawFloat(transferredEnergy, 4, 90, 135, 6);
+    present_screen_mode = WHILE_CHARGING_SCREEN;
+    last_screen_mode = HOME_SCREEN;
+  }
+  else
+  {
+    present_screen_mode = HOME_SCREEN;
+    last_screen_mode = WHILE_CHARGING_SCREEN;
   }
 
-  delay(1000);
+  // Logic for Home Screen
+  if (strcmp(present_screen_mode, HOME_SCREEN) == 0)
+  {
+
+    if (strcmp(last_screen_mode, HOME_SCREEN) != 0)
+    {
+
+      tft.fillScreen(TFT_BLACK);
+
+      // Draw a colored rectangle on the right half of the screen
+      tft.fillRect(0, tft.height() / 2 + 22, tft.width(), tft.height() / 2 + 22, TFT_DARKGREY);
+      drawArrayJpeg(station_3, sizeof(station_3), 26.5, 186); // Draw a jpeg image stored in memory
+                                                              // delay(5000000); // Delay for a short period of time
+      // tft.drawLine(0, 180, tft.width(), 180, TFT_SKYBLUE);
+      // tft.drawLine(0, 179, tft.width(), 179, TFT_SKYBLUE);
+      // tft.drawLine(0, 178, tft.width(), 178, TFT_SKYBLUE);
+      tft.drawLine(0, 72, tft.width(), 72, TFT_SKYBLUE);
+      last_screen_mode = HOME_SCREEN;
+    }
+
+    while (true)
+    {
+      float power = analogRead(solarPanelPin) * 2.5 / 4095; // Read voltage from ADC
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.drawString("Solar Power", 80, 15, 1);
+      tft.setTextColor(TFT_GREEN, TFT_BLACK);
+      // tft.setTextSize(2);
+      tft.drawFloat(power, 4, 54, 52, 4);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.drawString("kW", 133, 51);
+
+      // Station Energy Available
+      // tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      // tft.drawString("Available", 60, 85, 4);
+      // tft.drawString("Energy", 40, 100, 4);
+      tft.setTextSize(1);
+      tft.setCursor(5, 100);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.println("Available");
+
+      tft.setCursor(5, 120);
+      tft.print("Energy");
+
+      // energy produced in one second
+      if (availableEnergy < 50)
+      {
+        availableEnergy = 50 + (power / POWER_FACTOR); //  1 hour = 3600 second. Since, loop is running in each second
+      }
+      else
+      {
+        availableEnergy = availableEnergy + (power / POWER_FACTOR); //  1 hour = 3600 second. Since, loop is running in each second
+      }
+      tft.setTextColor(TFT_BROWN, TFT_BLACK);
+      tft.drawFloat(availableEnergy, 4, 53, 150, 4);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.drawString("kWh", 141, 145);
+
+      // QR: Scan me to FUEL
+      // tft.setTextSize(15);
+      // tft.setTextColor(TFT_BACKLIGHT_ON, TFT_LIGHTGREY);
+      // tft.setCursor(0, tft.height() - 10);
+      // tft.print("SCAN n FUEL");
+
+      updateEnergyAvailableAndRateOfEnergyGeneration(availableEnergy, power);
+
+      if (checkIfVehicleCharging() == "InProgress")
+      {
+        present_screen_mode = WHILE_CHARGING_SCREEN;
+        last_screen_mode = HOME_SCREEN;
+        Serial.println("breakl");
+        break;
+      }
+    }
+  }
+
+  Serial.println("break2");
+
+  // Logic For Charging Screens
+  if (strcmp(present_screen_mode, WHILE_CHARGING_SCREEN) == 0)
+  {
+
+    if (strcmp(last_screen_mode, HOME_SCREEN) == 0)
+    {
+      tft.fillScreen(TFT_BLACK);
+      // drawArrayJpeg(tsinlogo, sizeof(tsinlogo), 0, tft.height() - 25); // Draw a jpeg image stored in memory
+      tft.pushImage(30, tft.height() - 25, 105, 25, TSINLogo);
+      // if (strcmp(last_screen_mode, HOME_SCREEN) == 0)
+      // {
+      tft.fillScreen(TFT_BLACK);
+      // drawArrayJpeg(tsinlogo, sizeof(tsinlogo), 0, tft.height() - 25); // Draw a jpeg image stored in memory
+      tft.pushImage(30, tft.height() - 25, 105, 25, TSINLogo);
+      last_screen_mode = WHILE_CHARGING_SCREEN;
+
+      Serial.println("indide: stationState == FUELING");
+
+      drawArrayJpeg(charging1, sizeof(charging1), 50, 5); // Draw a jpeg image stored in memory
+      // delay(1000);
+
+      // tft.fillRect(50, 45, 80, 190, TFT_BLACK);
+
+      // Energy Transfered
+      tft.setTextColor(TFT_BROWN, TFT_BLACK);
+      int tfew = tft.drawNumber(transferredEnergy, 40, 170, 6);
+      tft.setTextSize(1);
+      tft.setCursor(95, 180);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.println("KWh");
+      // tft.drawString("kWh", tfew + 5, 250, 6);
+
+      // Cost
+      tft.setTextColor(TFT_DARKGREEN, TFT_BLACK);
+      tft.drawFloat(cost, 2, 40, 224, 4);
+      tft.setCursor(95, 230);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.println("EUR");
+
+      // Time
+      tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+
+      tft.drawString(_timeRemaining, 40, 273, 4);
+      tft.setCursor(95, 280);
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.println("Sec.");
+
+      last_screen_mode = WHILE_CHARGING_SCREEN;
+    }
+
+    while (true)
+    {
+
+      if (getTransactionState() == "FUELING")
+      {
+        Serial.println("indide: stationState == FUELING");
+        tft.setTextColor(TFT_BROWN, TFT_BLACK);
+        tft.drawNumber(transferredEnergy, 40, 170, 6);
+
+        tft.setTextColor(TFT_DARKGREEN, TFT_BLACK);
+        tft.drawFloat(cost, 2, 40, 224, 4);
+
+        tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+        tft.drawString(_timeRemaining, 40, 273, 4);
+
+        // testChargingUI();
+      }
+
+      if (getTransactionState() == "FUELING_COMPLETE_AND_PENDING_FOR_PAYMENT")
+      {
+        Serial.println("indide: stationState == FUELING_COMPLETE_AND_PENDING_FOR_PAYMENT");
+
+        tft.fillScreen(TFT_LIGHTGREY);
+        tft.setCursor(5, 260);
+        tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        tft.println("Pending pay.");
+
+        delay(1000);
+      }
+
+      if (getTransactionState() == "PAYMENT_COMPLETE")
+      {
+        Serial.println("indide: stationState == " + stationState);
+        tft.fillScreen(TFT_LIGHTGREY);
+        tft.setCursor(5, 260);
+        tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        tft.println("Complete.");
+        delay(1000);
+        present_screen_mode = HOME_SCREEN;
+        last_screen_mode = WHILE_CHARGING_SCREEN;
+        tft.fillScreen(TFT_BLACK);
+        break;
+      }
+    }
+  }
+
+  delay(250);
 }
 
 // ####################################################################################################
@@ -343,6 +485,89 @@ void jpegInfo()
   Serial.println(F("==============="));
 }
 
+// ####################################################################################################
+//  Show the execution time (optional)
+// ####################################################################################################
+//  WARNING: for UNO/AVR legacy reasons printing text to the screen with the Mega might not work for
+//  sketch sizes greater than ~70KBytes because 16 bit address pointers are used in some libraries.
+
+// The Due will work fine with the HX8357_Due library.
+
+// void showTime(uint32_t msTime)
+// {
+//   // tft.setCursor(0, 0);
+//   // tft.setTextFont(1);
+//   // tft.setTextSize(2);
+//   // tft.setTextColor(TFT_WHITE, TFT_BLACK);
+//   // tft.print(F(" JPEG drawn in "));
+//   // tft.print(msTime);
+//   // tft.println(F(" ms "));
+//   Serial.print(F(" JPEG drawn in "));
+//   Serial.print(msTime);
+//   Serial.println(F(" ms "));
+// }
+
+void updateEnergyAvailableAndRateOfEnergyGeneration(float capacity, float rateOfGeneration)
+{
+
+  char strCapacity[10];
+  dtostrf(capacity, 6, 4, strCapacity);
+
+  char strRateOfGeneration[10];
+  dtostrf(rateOfGeneration, 6, 4, strRateOfGeneration);
+
+  Serial.println("strRateOfGeneration: " + (String)strRateOfGeneration);
+  Serial.println("strCapacity: " + (String)strCapacity);
+
+  HTTPClient http;
+  String url = "http://20.96.116.65:80/api/v1/updateStationState/" + String(thisIOTDeviceId) + "/" + String(strCapacity) + "/" + String(strRateOfGeneration) + "";
+
+  // String jsonPayload = "{ \"deviceId\":\"2\", "\stationtype\":"\\"stationId\": \"4\", \"rateOfEnergyGeneration\": \"55\", \"capacity\":\"40511\" }";
+
+  http.addHeader("Content-Type", "application/json");
+  // http.addHeader("Content-Type", "text/plain");
+  // http.addHeader("Content-Length", "65");
+  // http.addHeader("Accept", "*/*");
+  http.begin(url);
+  // http.PUT(httpRequestBody);
+  // Set the content type header to indicate JSON data
+
+  int httpResponseCode = http.PUT("{ \"myKey\": \"99\"}");
+
+  if (httpResponseCode == HTTP_CODE_OK)
+  {
+    String jsonResponse = http.getString();
+
+    // Parse the JSON response
+    // StaticJsonDocument<200> jsonDoc; // Adjust the capacity as per your JSON response size
+    // DeserializationError error = deserializeJson(jsonDoc, jsonResponse);
+
+    // Serial.println(jsonResponse);
+
+    // if (error)
+    // {
+    //   Serial.print("JSON parsing failed! Error code: ");
+    //   Serial.println(error.c_str());
+    // }
+    // else
+    // {
+    //   // Access the parsed data
+    //   const char *vehicleFuelingState = jsonDoc["vehicleFuelingState"];
+
+    //   // Do something with the extracted data
+    //   Serial.print("vehicleFuelingState: ");
+    //   Serial.println(vehicleFuelingState);
+    // }
+  }
+  else
+  {
+    Serial.print("HTTP GET request failed, error code: ");
+    Serial.println(httpResponseCode);
+  }
+
+  http.end();
+}
+
 String checkIfVehicleCharging()
 {
   delay(250);
@@ -396,25 +621,30 @@ String checkIfVehicleCharging()
       else
       {
         const char *_fuelingStatus = jsonDoc["fuelingStatus"];
-        float _transferredEnergy = jsonDoc["transferredEnergy"];
-        transferredEnergy = _transferredEnergy;
+        transferredEnergy = jsonDoc["transferredEnergy"];
 
-        int _timeRem = jsonDoc["timeRemaining"];
+        int _timeRemMilli = jsonDoc["timeRemaining"];
 
-        timeRemaining = _timeRem / 1000;
+        // milli secont to second
+        int _timeRem = _timeRemMilli / 1000;
 
-        if (timeRemaining > 99)
+        if (_timeRem < 10)
         {
-          timeRemaining = 90;
+          _timeRemaining = "0" + String(_timeRem);
+        }
+        else
+        {
+          _timeRemaining = String(_timeRem);
         }
 
-        cost = jsonDoc["cost"];
+
+
+        float _cost = jsonDoc["cost"];
+        cost = _cost;
+        Serial.print("Cost: ");
+        Serial.println(cost);
         const char *transactionState = jsonDoc["transactionState"];
         availableEnergy = jsonDoc["availableEnergy"];
-
-        int _fromDevice = jsonDoc["fromDevice"];
-        Serial.println("_fromDevice");
-        fromDevice = _fromDevice;
 
         Serial.print("Fueling Status: ");
         Serial.println(_fuelingStatus);
@@ -424,9 +654,8 @@ String checkIfVehicleCharging()
         Serial.print("Transferred Energy: ");
         Serial.println(transferredEnergy);
         Serial.print("Time Remaining: ");
-        Serial.println(_timeRem);
-        Serial.print("Cost: ");
-        Serial.println(cost);
+        Serial.println(_timeRemaining);
+
         Serial.print("Transaction State: ");
         Serial.println(transactionState);
         stationState = transactionState;
@@ -500,27 +729,28 @@ String getTransactionState()
       else
       {
         const char *_fuelingStatus = jsonDoc["fuelingStatus"];
-        float _transferredEnergy = jsonDoc["transferredEnergy"];
-        transferredEnergy = _transferredEnergy;
+        transferredEnergy = jsonDoc["transferredEnergy"];
 
-        int _timeRem = jsonDoc["timeRemaining"];
-        timeRemaining = _timeRem / 1000;
+        int _timeRemMilli = jsonDoc["timeRemaining"];
 
-        if (timeRemaining > 99)
+        // milli secont to second
+        int _timeRem = _timeRemMilli / 1000;
+
+        if (_timeRem < 10)
         {
-          timeRemaining = 90;
+          _timeRemaining = "0" + String(_timeRem);
+        }
+        else
+        {
+          _timeRemaining = String(_timeRem);
         }
 
-        cost = jsonDoc["cost"];
+        float _cost = jsonDoc["cost"];
+        cost = _cost;
+        Serial.print("Cost: ");
+        Serial.println(cost);
         const char *transactionState = jsonDoc["transactionState"];
-
-        int _availableEnergy = jsonDoc["availableEnergy"];
-        Serial.println("availableEnergy: ");
-        availableEnergy = _availableEnergy;
-
-        int _fromDevice = jsonDoc["fromDevice"];
-        Serial.println("_fromDevice");
-        fromDevice = _fromDevice;
+        availableEnergy = jsonDoc["availableEnergy"];
 
         Serial.print("Fueling Status: ");
         Serial.println(_fuelingStatus);
@@ -530,12 +760,12 @@ String getTransactionState()
         Serial.print("Transferred Energy: ");
         Serial.println(transferredEnergy);
         Serial.print("Time Remaining: ");
-        Serial.println(_timeRem);
-        Serial.print("Cost: ");
-        Serial.println(cost);
+        Serial.println(_timeRemaining);
         Serial.print("Transaction State: ");
         Serial.println(transactionState);
         stationState = transactionState;
+        Serial.println("availableEnergy");
+        availableEnergy = (int)availableEnergy;
       }
     }
     else
@@ -552,4 +782,43 @@ String getTransactionState()
   }
 
   return stationState;
+}
+
+void testChargingUI()
+{
+  // if (strcmp(last_screen_mode, HOME_SCREEN) == 0)
+  // {
+  tft.fillScreen(TFT_BLACK);
+  // drawArrayJpeg(tsinlogo, sizeof(tsinlogo), 0, tft.height() - 25); // Draw a jpeg image stored in memory
+  tft.pushImage(30, tft.height() - 25, 105, 25, TSINLogo);
+  last_screen_mode = WHILE_CHARGING_SCREEN;
+
+  Serial.println("indide: stationState == FUELING");
+
+  drawArrayJpeg(charging1, sizeof(charging1), 50, 5); // Draw a jpeg image stored in memory
+  // delay(1000);
+
+  // tft.fillRect(50, 45, 80, 190, TFT_BLACK);
+
+  // Energy Transfered
+  tft.setTextColor(TFT_BROWN, TFT_BLACK);
+  int tfew = tft.drawNumber(transferredEnergy, 40, 170, 6);
+  tft.setTextSize(1);
+  tft.setCursor(95, 180);
+  tft.println("KWh");
+  // tft.drawString("kWh", tfew + 5, 250, 6);
+
+  // Cost
+  tft.setTextColor(TFT_DARKGREEN, TFT_BLACK);
+  tft.drawFloat(cost, 2, 40, 224, 4);
+  tft.setCursor(95, 230);
+  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+  tft.println("EUR");
+
+  // Time
+  tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+  tft.drawString(_timeRemaining, 40, 273, 4);
+  tft.setCursor(95, 280);
+  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+  tft.println("Sec.");
 }
