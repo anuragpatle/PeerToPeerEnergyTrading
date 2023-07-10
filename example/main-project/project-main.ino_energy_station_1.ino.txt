@@ -23,7 +23,7 @@ char *HOME_SCREEN = "READINGS_AND_QR_SCREEN";
 char *WHILE_CHARGING_SCREEN = "WHILE_CHARGING_SCREEN";
 
 int solarPanelPin = 1;
-float availableEnergy = 10.0000; // in KWh
+float availableEnergy = 10.0000; // in kg
 char *present_screen_mode = HOME_SCREEN;
 char *last_screen_mode = WHILE_CHARGING_SCREEN;
 bool toggleScreenMode = true;
@@ -185,10 +185,8 @@ void loop()
       tft.fillRect(0, tft.height() / 2 + 22, tft.width(), tft.height() / 2 + 22, TFT_DARKGREY);
       drawArrayJpeg(station_3, sizeof(station_3), 26.5, 186); // Draw a jpeg image stored in memory
                                                               // delay(5000000); // Delay for a short period of time
-      // tft.drawLine(0, 180, tft.width(), 180, TFT_SKYBLUE);
-      // tft.drawLine(0, 179, tft.width(), 179, TFT_SKYBLUE);
-      // tft.drawLine(0, 178, tft.width(), 178, TFT_SKYBLUE);
-      tft.drawLine(0, 72, tft.width(), 72, TFT_SKYBLUE);
+
+      tft.drawLine(0, 77, tft.width(), 77, TFT_SKYBLUE);
       last_screen_mode = HOME_SCREEN;
     }
 
@@ -196,10 +194,10 @@ void loop()
     {
       float power = analogRead(solarPanelPin) * 2.5 / 4095; // Read voltage from ADC
       tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-      tft.drawString("Solar Power", 80, 15, 1);
+      tft.drawString("Solar Power", 80, 20, 1);
       tft.setTextColor(TFT_GREEN, TFT_BLACK);
       // tft.setTextSize(2);
-      tft.drawFloat(power, 4, 54, 52, 4);
+      tft.drawFloat(power, 4, 54, 57, 4);
       tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
       tft.drawString("kW", 133, 51);
 
@@ -208,12 +206,12 @@ void loop()
       // tft.drawString("Available", 60, 85, 4);
       // tft.drawString("Energy", 40, 100, 4);
       tft.setTextSize(1);
-      tft.setCursor(5, 100);
+      tft.setCursor(5, 105);
       tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
       tft.println("Available");
 
-      tft.setCursor(5, 120);
-      tft.print("Energy");
+      tft.setCursor(5, 125);
+      tft.print("Electricity");
 
       // energy produced in one second
       if (availableEnergy < 50)
@@ -225,9 +223,9 @@ void loop()
         availableEnergy = availableEnergy + (power / POWER_FACTOR); //  1 hour = 3600 second. Since, loop is running in each second
       }
       tft.setTextColor(TFT_BROWN, TFT_BLACK);
-      tft.drawFloat(availableEnergy, 4, 53, 150, 4);
+      tft.drawFloat(availableEnergy, 4, 53, 155, 4);
       tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-      tft.drawString("kWh", 141, 145);
+      tft.drawString("kWh", 141, 150);
 
       // QR: Scan me to FUEL
       // tft.setTextSize(15);
@@ -278,7 +276,7 @@ void loop()
       tft.setTextSize(1);
       tft.setCursor(95, 180);
       tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-      tft.println("KWh");
+      tft.println("kWh");
       // tft.drawString("kWh", tfew + 5, 250, 6);
 
       // Cost
@@ -805,7 +803,7 @@ void testChargingUI()
   int tfew = tft.drawNumber(transferredEnergy, 40, 170, 6);
   tft.setTextSize(1);
   tft.setCursor(95, 180);
-  tft.println("KWh");
+  tft.println("kWh");
   // tft.drawString("kWh", tfew + 5, 250, 6);
 
   // Cost
