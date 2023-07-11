@@ -1,8 +1,9 @@
-SPI
-adafruit/Adafruit BusIO@^1.14.1
 arduino-libraries/Arduino_JSON@^0.2.0
-GFXfont
-bodmer/JPEGDecoder@^1.8.1
-bblanchon/ArduinoJson@^6.21.2
 adafruit/Adafruit GFX Library@^1.11.5
+adafruit/DHT sensor library@^1.4.4
+bodmer/JPEGDecoder@^1.8.1
+SPI
 Wire
+GFXfont
+bblanchon/ArduinoJson@^6.21.2
+adafruit/Adafruit BusIO@^1.14.1
