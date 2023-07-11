@@ -169,33 +169,6 @@ void loop()
   // Connect to Wi-Fi network
   // connectToWifi();
 
-  while (true)
-  {
-    // The DHT11 returns at most one measurement every 1s
-    float h = dht.readHumidity();
-    // Read the moisture content in %.
-    float t = dht.readTemperature();
-    // Read the temperature in degrees Celsius
-    float f = dht.readTemperature(true);
-    // true returns the temperature in Fahrenheit
-
-    if (isnan(h) || isnan(t) || isnan(f))
-    {
-      Serial.println("Failed reception");
-      return;
-      // Returns an error if the ESP32 does not receive any measurements
-    }
-
-    Serial.print("Humidite: ");
-    Serial.print(h);
-    Serial.print("%  Temperature: ");
-    Serial.print(t);
-    Serial.print("°C, ");
-    Serial.print(f);
-    Serial.println("°F");
-    // Transmits the measurements received in the serial monitor
-  }
-
   delay(10);                                                  // wait 10 milliseconds
   waterLevelSensorValue = analogRead(WATER_LEVEL_SIGNAL_PIN); // read the analog value from sensor
 
