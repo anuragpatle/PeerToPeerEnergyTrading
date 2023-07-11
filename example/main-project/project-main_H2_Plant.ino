@@ -9,6 +9,7 @@
 #include "TSINLogo.h"
 #include "Orbitron_Medium_20.h"
 #include <ArduinoJson.h>
+#include "DHT.h"
 
 //-------------------------------------Display images
 
@@ -20,6 +21,9 @@
 
 #define WATER_LEVEL_SIGNAL_PIN 1
 #define H2_PPM_SIGNAL_PIN 2
+#define DHTPIN 17 // humidity and temperature sensor pin
+#define SOIL_MOISTURE_SENSOR 4
+#define DHTTYPE DHT11
 
 /* The product now has two screens, and the initialization code needs a small change in the new version. The LCD_MODULE_CMD_1 is used to define the
  * switch macro. */
@@ -74,6 +78,8 @@ unsigned long lastTime = 0;
 // Set timer to 5 seconds (5000)
 // unsigned long timerDelay = 5000;
 
+DHT dht(DHTPIN, DHTTYPE); // constructor to declare our sensor
+
 void setup()
 {
 
@@ -81,6 +87,8 @@ void setup()
 
   pinMode(PIN_POWER_ON, OUTPUT);
   digitalWrite(PIN_POWER_ON, HIGH);
+
+  dht.begin();
 
   Serial.println("Hello T-Display-S3");
   tft.begin();
@@ -160,6 +168,33 @@ void loop()
 
   // Connect to Wi-Fi network
   // connectToWifi();
+
+  while (true)
+  {
+    // The DHT11 returns at most one measurement every 1s
+    float h = dht.readHumidity();
+    // Read the moisture content in %.
+    float t = dht.readTemperature();
+    // Read the temperature in degrees Celsius
+    float f = dht.readTemperature(true);
+    // true returns the temperature in Fahrenheit
+
+    if (isnan(h) || isnan(t) || isnan(f))
+    {
+      Serial.println("Failed reception");
+      return;
+      // Returns an error if the ESP32 does not receive any measurements
+    }
+
+    Serial.print("Humidite: ");
+    Serial.print(h);
+    Serial.print("%  Temperature: ");
+    Serial.print(t);
+    Serial.print("°C, ");
+    Serial.print(f);
+    Serial.println("°F");
+    // Transmits the measurements received in the serial monitor
+  }
 
   delay(10);                                                  // wait 10 milliseconds
   waterLevelSensorValue = analogRead(WATER_LEVEL_SIGNAL_PIN); // read the analog value from sensor
