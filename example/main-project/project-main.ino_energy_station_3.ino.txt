@@ -73,10 +73,10 @@ lcd_cmd_t lcd_st7789v[] = {
 };
 #endif
 
-const char *ssid = "A9";
-const char *password = "999999999";
-// const char *ssid = "CWLANGuest";
-// const char *password = "welcomeguest";
+// const char *ssid = "A9";
+// const char *password = "999999999";
+const char *ssid = "CWLANGuest";
+const char *password = "welcomeguest";
 
 // Your Domain name with URL path or IP address with path
 // const char *serverName = "20.96.116.65:80/api/v1/updateStationState/2";
