@@ -24,6 +24,8 @@
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite spr = TFT_eSprite(&tft); // Sprite class needs to be invoked
 unsigned long targetTime = 0;        // Used for testing draw times
+int startTimer = 0;
+unsigned long _1_minute_over = 0;
 
 uint32_t const GREEN_1 = 0x3bbb2a;
 
@@ -87,8 +89,12 @@ void callback(char *topic, byte *message, unsigned int length)
   publishLog(logMessage);
 
   // Handling Parking Light
-  if (topic_str == "")
+  if (topic_str == "screen/room")
   {
+    if (topic_msg == "start")
+    {
+      startTimer = 35;
+    }
   }
 }
 void reconnect()
@@ -155,7 +161,20 @@ void setup()
 }
 void displayData()
 {
-  float t = random(23.1, 26.1);
+  float t = 0;
+  Serial.print("start time ");
+  Serial.println(startTimer);
+  if (startTimer > 25)
+  {
+
+    t = startTimer;
+    --startTimer;
+  }
+  else
+  {
+    t = random(23.1, 26.1);
+  }
+
   float airQualityAQI = random(45, 50);  // Random AQI value between 45 and 50
   float h = random(40.1, 45.1);          // Random humidity value between 40.1 and 45.1
   const char *lightValue = "Warm Glow";  // Hard-coded light value
