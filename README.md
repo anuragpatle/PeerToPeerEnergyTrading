@@ -83,3 +83,11 @@ Please enter the upload mode manually.
    3. Release the RST
    4. Release the BOOT button
    5. Upload sketch
+
+
+## Measurements of screen. 
+ tft.drawString("kWh", 141, 150); // 1.9x, 2y => 1cmx= 74.21, 1cmy= 75
+
+ 1cmx= 74.21, 
+ 
+ 1cmy= 75

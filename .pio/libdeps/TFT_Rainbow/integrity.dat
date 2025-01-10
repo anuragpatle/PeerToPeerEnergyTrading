@@ -1,0 +1,7 @@
+adafruit/Adafruit GFX Library@^1.11.5
+bodmer/JPEGDecoder@^1.8.1
+adafruit/DHT sensor library@^1.4.4
+arduino-libraries/Arduino_JSON@^0.2.0
+bblanchon/ArduinoJson@^6.21.2
+adafruit/Adafruit Unified Sensor@^1.1.9
+adafruit/Adafruit BusIO@^1.14.1
