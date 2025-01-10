@@ -61,54 +61,53 @@ void setup()
 
   Serial.println("Setup complete.");
 }
-
 void displayData()
 {
-  const char *t = "25";
-  float airQualityAQI = random(45, 50);                // Hard-coded temperature value
-  float h = random(40, 45);                            // Random humidity value between 4.0 and 5.9
-  const char *lightValue = "Warm Glow";                // Hard-coded light value
-  const char *musicValue = "Music: Don't let me down"; // Hard-coded music value
+  float t = random(23.1, 26.1);
+  float airQualityAQI = random(45, 50);  // Random AQI value between 45 and 50
+  float h = random(40.1, 45.1);          // Random humidity value between 40.1 and 45.1
+  const char *lightValue = "Warm Glow";  // Hard-coded light value
+  const char *musicValue = "soft music"; // Hard-coded music value
 
   // Draw static content once
   spr.createSprite(240, 320); // Create sprite of screen size
-  spr.fillSprite(TFT_BLACK);  // White background
+  spr.fillSprite(TFT_BLACK);  // Black background
 
   // Print "Room Info" in fancy small font
-  spr.setFreeFont(&FreeSerifBold12pt7b); // Use FreeSerifItalic9pt7b font for smaller text
+  spr.setFreeFont(&FreeSerifBold12pt7b); // Use FreeSerifBold12pt7b font for smaller text
   spr.setTextColor(TFT_GOLD);
   spr.setCursor(10, 20);
   spr.print("R O O M");
 
-  // begin AQI
+  // Begin AQI
   spr.drawLine(0, 30, 255, 30, color24To565(0x931e1e));
 
-  spr.setFreeFont(&FreeSerifBold9pt7b); // Use FreeSansBold24pt7b font for larger text
+  spr.setFreeFont(&FreeSerifBold9pt7b); // Use FreeSerifBold9pt7b font for larger text
   spr.setTextColor(color24To565(0X2abb92));
   spr.setCursor(10, 50);
   spr.print("A I R");
-  spr.setFreeFont(&FreeSerif12pt7b); // Use FreeSansBold24pt7b font for larger text
+  spr.setFreeFont(&FreeSerif12pt7b); // Use FreeSerif12pt7b font for larger text
 
   spr.setTextColor(TFT_LIGHTGREY);
   spr.setCursor(10, 75);
-  spr.print("" + String(airQualityAQI) + " AQI");
-  // end AQI
+  spr.print(String(airQualityAQI) + " AQI");
+  // End AQI
 
   // Begin Temperature
   spr.drawLine(0, 90, 255, 90, color24To565(0x931e1e));
-  spr.setFreeFont(&FreeSerifBold9pt7b); // Use FreeSansBold24pt7b font for larger text
+  spr.setFreeFont(&FreeSerifBold9pt7b); // Use FreeSerifBold9pt7b font for larger text
   spr.setTextColor(color24To565(0X2abb92));
   spr.setCursor(10, 110);
   spr.print("T E M P.");
-  spr.setFreeFont(&FreeSerif12pt7b); // Use FreeSansBold24pt7b font for larger text
+  spr.setFreeFont(&FreeSerif12pt7b); // Use FreeSerif12pt7b font for larger text
   spr.setTextColor(TFT_LIGHTGREY);
   spr.setCursor(10, 135);
-  spr.print("" + String(t) + " 'C");
+  spr.print(String(t) + " 'C");
   // End Temperature
 
   // Begin Humid
   spr.drawLine(0, 150, 255, 150, color24To565(0x931e1e));
-  spr.setFreeFont(&FreeSerifBold9pt7b); // Use FreeSansBold24pt7b font for larger text
+  spr.setFreeFont(&FreeSerifBold9pt7b); // Use FreeSerifBold9pt7b font for larger text
   spr.setTextColor(color24To565(0X2abb92));
   spr.setCursor(10, 170);
   spr.print("H U M I D");
@@ -120,8 +119,8 @@ void displayData()
   // End Humid
 
   // Begin Light
-  spr.drawLine(0, 205, 255, 205, color24To565(0x931e1e)); // Draw white horizontal line
-  spr.setFreeFont(&FreeSerifBold9pt7b);                   // Use FreeSansBold24pt7b font for larger text
+  spr.drawLine(0, 205, 255, 205, color24To565(0x931e1e)); // Draw red horizontal line
+  spr.setFreeFont(&FreeSerifBold9pt7b);                   // Use FreeSerifBold9pt7b font for larger text
   spr.setTextColor(color24To565(0X2abb92));
   spr.setCursor(10, 225);
   spr.print("L I G H T");
@@ -129,42 +128,34 @@ void displayData()
   spr.setFreeFont(&FreeSerif12pt7b);
   spr.setTextColor(TFT_LIGHTGREY);
   spr.setCursor(10, 250);
-  spr.print(String(lightValue));
+  spr.print(lightValue);
   // End Light
+
+  // Begin Music
+  spr.setFreeFont(&FreeSerif12pt7b); // Use FreeSerifBold9pt7b font for larger text
+  spr.setTextColor(TFT_LIGHTGREY);
+  spr.setCursor(10, 307);
+  spr.print("SOFT MUSIC");
+  // End Music
 
   spr.pushSprite(0, 0); // Push sprite to screen
   spr.deleteSprite();   // Delete sprite to free memory
 
-  // Begin Music
+  // Begin Wave Animation
+  tft.fillRect(0, 270, 240, 15, TFT_BLACK); // Clear previous wave area
 
-  // Horizontal scrolling of "Don't let me down"
-  int scrollSpeed = 1; // Adjust scroll speed as needed
-  int textWidth = tft.textWidth(musicValue);
-  int xPos = 240; // Initial position off-screen
-
-  while (true)
+  for (int i = 0; i < 240; i += 5)
   {
-    tft.fillRect(0, 280, 240, 40, TFT_BLACK); // Clear previous text area
-
-    tft.setTextColor(color24To565(GREEN_1));
-    tft.setFreeFont(&FreeSerif12pt7b);
-    tft.setCursor(xPos, 280);
-    tft.print(musicValue);
-
-    xPos -= scrollSpeed;
-    if (xPos < -textWidth)
-    {
-      xPos = 240; // Reset position once off-screen
-    }
-
-    delay(50); // Adjust delay for smoother scrolling
+    int waveHeight = random(5, 15);                                    // Random height for wave bars
+    tft.drawLine(i, 275, i, 275 - waveHeight, color24To565(0x00FF00)); // Green bars
   }
+  // End Wave Animation
 }
 
 void loop()
 {
   displayData();
-  delay(2000); // Update every 2 seconds
+  delay(500); // Update every 100 ms for smoother animation
 }
 
 uint16_t color24To565(uint32_t color24)
