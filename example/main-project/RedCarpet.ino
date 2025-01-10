@@ -8,7 +8,9 @@
 #include "Orbitron_Medium_20.h"
 #include <ArduinoJson.h>
 #include <FS.h>
-#include <stdlib.h> // For random values
+#include <stdlib.h>       // For random values
+#include <WiFi.h>         // WiFi library for connecting to network
+#include <PubSubClient.h> // MQTT library
 
 //-------------------------------------Display images
 
@@ -24,6 +26,92 @@ TFT_eSprite spr = TFT_eSprite(&tft); // Sprite class needs to be invoked
 unsigned long targetTime = 0;        // Used for testing draw times
 
 uint32_t const GREEN_1 = 0x3bbb2a;
+
+// WiFi and MQTT configurations
+// [BEGIN] Network Settings ---------------------------------------------------------------------------------------
+const char *ssid = "A9";
+const char *password = "999999999";
+const char *mqtt_server = "raspberrypi.local";
+#define LOG_TOPIC "client/logs"
+// [END] Network Settings ---------------------------------------------------------------------------------------
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+// Unique Client ID
+String clientId = "TDisplayS3_Room-" + String(ESP.getEfuseMac());
+
+void setup_wifi()
+{
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void publishLog(String message)
+{
+  String msgWithInfo = clientId + "_" + message;
+  Serial.println(msgWithInfo); // Add this line to check messages
+  client.publish(LOG_TOPIC, msgWithInfo.c_str());
+  delay(100); // Add a delay to reduce flooding
+}
+
+void callback(char *topic, byte *message, unsigned int length)
+{
+  String logMessage = "Message arrived [";
+  logMessage += topic;
+  logMessage += "] ";
+
+  String topic_str = String(topic);
+  String topic_msg;
+  for (int i = 0; i < length; i++)
+  {
+    logMessage += (char)message[i];
+    topic_msg += (char)message[i];
+  }
+
+  publishLog(logMessage);
+
+  // Handling Parking Light
+  if (topic_str == "")
+  {
+  }
+}
+void reconnect()
+{
+  while (!client.connected())
+  {
+    String logMessage = "Attempting MQTT connection...";
+    publishLog(logMessage);
+
+    // Use the connect function with the clean session set to true
+    if (client.connect(clientId.c_str(), nullptr, nullptr, nullptr, 0, true, nullptr))
+    {
+      publishLog("Connected");
+      client.subscribe("screen/room", 0);
+    }
+    else
+    {
+      logMessage = "Failed, rc=" + String(client.state()) + " try again in 5 seconds";
+      publishLog(logMessage);
+      delay(5000);
+    }
+  }
+}
 
 #if defined(LCD_MODULE_CMD_1)
 typedef struct
@@ -58,6 +146,10 @@ void setup()
   tft.setRotation(0);        // Vertical screen
   tft.fillScreen(TFT_WHITE); // White background
   spr.setColorDepth(16);     // 16-bit color for smooth fonts
+
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
 
   Serial.println("Setup complete.");
 }
@@ -154,6 +246,11 @@ void displayData()
 
 void loop()
 {
+  if (!client.connected())
+  {
+    reconnect();
+  }
+  client.loop();
   displayData();
   delay(500); // Update every 100 ms for smoother animation
 }
